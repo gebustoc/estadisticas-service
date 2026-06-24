@@ -9,14 +9,17 @@ los expone para el dashboard del frontend. Comparte BD y JWT con casino-backend.
 Prefijo de rutas: /api/estadisticas
 """
 import os
+import time
 from contextlib import asynccontextmanager
 
 from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 
 from .auth import usuario_actual
 from .db import conexion, dict_cursor, esperar_bd
 
+START = time.time()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -145,3 +148,27 @@ def estadisticas_globales(usuario: dict = Depends(usuario_actual)):
         "top_jugadores": top,
         "apuestas": {**ap, "win_rate": win_rate},
     }
+
+
+
+@app.get("/livez")
+def livez():
+    return { "status": 'alive', "uptime": time.time()-START }
+
+
+@app.get("/readyz")
+def readyz():
+    try:
+        with conexion() as conn:
+            with dict_cursor(conn) as cur:
+                cur.execute("SELECT 1")
+        
+        return JSONResponse(status_code=200,content={ "status": 'ready', "db": 'up' })
+
+    except Exception as e:
+        return JSONResponse(status_code=503,content={ "status": 'not-ready', "db": 'down', "error": str(e) })
+
+        
+
+
+
