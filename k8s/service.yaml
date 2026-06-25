@@ -14,4 +14,4 @@ spec:
     - name: http
       protocol: TCP
       port: 8001        # puerto del Service (DNS interno)
-      targetPort: 3001  # puerto del contenedor
+      targetPort: 3002  # puerto del contenedor
