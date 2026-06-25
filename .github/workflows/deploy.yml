@@ -7,7 +7,7 @@ on:
 
 env:
   AWS_REGION: us-east-1
-  CLUSTER_NAME: microservicios-casino
+  CLUSTER_NAME: estadisticas-service
 
 jobs:
   deploy:
