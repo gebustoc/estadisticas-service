@@ -23,7 +23,8 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
           aws-region: ${{ env.AWS_REGION }}
-
+        
+ 
       - name: 3. Login en Amazon ECR
         id: ecr
         uses: aws-actions/amazon-ecr-login@v2
@@ -33,6 +34,8 @@ jobs:
           REGISTRY: ${{ steps.ecr.outputs.registry }}
           IMAGE_TAG: ${{ github.sha }}
         run: |
+            ls -la
+
             docker build -t "$REGISTRY/estadisticas-service:$IMAGE_TAG" -t "$REGISTRY/estadisticas-service:latest" "./estadisticas-service"
             docker push "$REGISTRY/estadisticas-service:$IMAGE_TAG"
             docker push "$REGISTRY/estadisticas-service:latest"
