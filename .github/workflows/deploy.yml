@@ -1,35 +1,35 @@
-name: Desplegar microservicios en EKS (CI/CD)
+name: Build & Deploy backend
 
 on:
   push:
     branches: [ deploy ]
-  workflow_dispatch:        # tambien se lanza a mano desde la pestana Actions
+    paths-ignore: [ 'db/**' ]   # cambios solo en db/ no disparan este job
+  workflow_dispatch:           # permite lanzarlo manual desde la pestana Actions
+
 
 env:
   AWS_REGION: us-east-1
   CLUSTER_NAME: microservicios-casino
 
 jobs:
-  deploy:
+  buildPush:
     runs-on: ubuntu-latest
     steps:
-      - name: 1. Descargar el codigo del repo
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: 2. Configurar credenciales de AWS (temporales del lab)
+      - name: Configurar credenciales AWS (temporales del Learner Lab)
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-access-key-id:     ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
-          aws-region: ${{ env.AWS_REGION }}
-        
- 
-      - name: 3. Login en Amazon ECR
+          aws-session-token:     ${{ secrets.AWS_SESSION_TOKEN }}
+          aws-region:            ${{ secrets.AWS_REGION }}
+
+      - name: Login a ECR
         id: ecr
         uses: aws-actions/amazon-ecr-login@v2
 
-      - name: 4. Construir y subir las 3 imagenes (los repos ya existen en ECR)
+      - name: Build & Push to ECR
         env:
           REGISTRY: ${{ steps.ecr.outputs.registry }}
           IMAGE_TAG: ${{ github.sha }}
@@ -38,26 +38,45 @@ jobs:
             docker push "$REGISTRY/estadisticas-service:$IMAGE_TAG"
             docker push "$REGISTRY/estadisticas-service:latest"
           
+          
+  k8sDeploy:
+    runs-on: ubuntu-latest
+    needs: buildPush
+    steps:
+      - uses: actions/checkout@v4
 
-      - name: 5. Instalar kubectl en el runner
+      - name: Configurar credenciales AWS (temporales del Learner Lab)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id:     ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-session-token:     ${{ secrets.AWS_SESSION_TOKEN }}
+          aws-region:            ${{ secrets.AWS_REGION }}
+
+      - name: Login a ECR
+        id: ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Instalar kubectl en el runner
         run: |
           curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
           chmod +x kubectl
           sudo mv kubectl /usr/local/bin/kubectl
 
-      - name: 6. Conectar kubectl al cluster
+      - name: Conectar kubectl al cluster
         run: aws eks update-kubeconfig --name "$CLUSTER_NAME" --region "$AWS_REGION"
 
-      - name: 7. Desplegar la app y el LoadBalancer
+      - name: Desplegar el back
         env:
           IMAGE_TAG: ${{ github.sha }}
         run: |
-          ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+            ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
             sed -i "s|<ACCOUNT_ID>|$ACCOUNT_ID|g; s|<REGION>|$AWS_REGION|g; s|:latest|:$IMAGE_TAG|g" "k8s/deployment.yaml"
+            cat k8s/deployment.yaml
             kubectl apply -f "k8s/deployment.yaml"
             kubectl apply -f "k8s/service.yaml"
          
-      - name: 8. Esperar al rollout
+      - name: Esperar al rollout
         run: |
           kubectl rollout status deployment/estadisticas-service --timeout=180s
           kubectl get pods -o wide

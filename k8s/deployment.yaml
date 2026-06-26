@@ -19,6 +19,18 @@ spec:
           image: <ACCOUNT_ID>.dkr.ecr.<REGION>.amazonaws.com/estadisticas-service:latest
           ports:
             - containerPort: 3002
+
+          env:
+              - name: DB_HOST
+                value: "casino-db"
+              - name: POSTGRES_USER
+                value: "casino"
+              - name: POSTGRES_PASSWORD
+                value: "casino"
+              - name: POSTGRES_DB
+                value: "casino_db"
+
+
           # Probe de "vivo": si falla, Kubernetes reinicia el contenedor.
           livenessProbe:
             httpGet:
@@ -27,16 +39,16 @@ spec:
             initialDelaySeconds: 5
             periodSeconds: 10
           # Probe de "listo": si falla, no recibe tráfico desde el Service.
-#          readinessProbe:
- #           httpGet:
-  #            path: /readyz
-   #           port: 3002
-    #        initialDelaySeconds: 3
-     #       periodSeconds: 5
-      #    resources:
-       #     requests:
-        #      cpu: "50m"
-         #     memory: "64Mi"
-          #  limits:
-           #   cpu: "250m"
-            #  memory: "128Mi"
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: 3002
+            initialDelaySeconds: 3
+            periodSeconds: 5
+          resources:
+            requests:
+              cpu: "50m"
+              memory: "64Mi"
+            limits:
+              cpu: "250m"
+              memory: "128Mi"
