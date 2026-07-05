@@ -29,7 +29,8 @@ spec:
                 value: "casino"
               - name: POSTGRES_DB
                 value: "casino_db"
-
+              - name: JWT_SECRET
+                value: "dev" 
 
           # Probe de "vivo": si falla, Kubernetes reinicia el contenedor.
           livenessProbe:
