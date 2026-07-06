@@ -21,14 +21,31 @@ spec:
             - containerPort: 3002
 
           env:
-              - name: DB_HOST
-                value: "casino-db"
-              - name: POSTGRES_USER
-                value: "casino"
-              - name: POSTGRES_PASSWORD
-                value: "casino"
-              - name: POSTGRES_DB
-                value: "casino_db"
+            - name: DB_HOST
+              value: casino-db
+            - name: DB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: casino-secrets
+                  key: POSTGRES_USER
+                  
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: casino-secrets
+                  key: POSTGRES_PASSWORD
+                  
+            - name: DB_NAME
+              valueFrom:
+                secretKeyRef:
+                  name: casino-secrets
+                  key: POSTGRES_DB
+
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: casino-secrets
+                  key: JWT_SECRET
 
 
           # Probe de "vivo": si falla, Kubernetes reinicia el contenedor.

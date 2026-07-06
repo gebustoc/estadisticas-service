@@ -11,7 +11,7 @@ spec:
   selector:
     app: estadisticas-service
   ports:
-    - name: http
+    - name: stats-ext
       protocol: TCP
-      port: 8002        # puerto del Service (DNS interno)
+      port: 3002        # puerto del Service (DNS interno)
       targetPort: 3002  # puerto del contenedor
